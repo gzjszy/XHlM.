@@ -283,6 +283,18 @@
       /* 荣誉轮播 */
       #honorSlider {
         padding: 0 1rem;
+        touch-action: pan-y; /* 允许垂直滚动，但水平方向由JS控制 */
+        cursor: grab;
+      }
+      
+      /* 滑动时的光标样式 */
+      #honorSlider:active {
+        cursor: grabbing;
+      }
+      
+      /* 轮播容器 */
+      #honorSlider.parent {
+        -webkit-overflow-scrolling: touch; /* 启用流畅的触摸滚动 */
       }
       
       /* 页脚 */
@@ -1541,6 +1553,59 @@
         cardWidth = slides[0] ? slides[0].offsetWidth + 24 : 404;
         updateSlider();
       }, 100);
+    });
+    
+    // 添加移动端触摸滑动支持
+    let isTouching = false;
+    let startX = 0;
+    let currentTranslate = 0;
+    let prevTranslate = 0;
+    
+    honorSlider.addEventListener('touchstart', (e) => {
+      isTouching = true;
+      startX = e.touches[0].clientX - prevTranslate;
+      stopAutoPlay(); // 触摸时停止自动播放
+    });
+    
+    honorSlider.addEventListener('touchmove', (e) => {
+      if (!isTouching) return;
+      e.preventDefault(); // 防止默认滚动行为
+      const currentX = e.touches[0].clientX;
+      currentTranslate = currentX - startX;
+      honorSlider.style.transform = `translateX(${currentTranslate}px)`;
+    });
+    
+    honorSlider.addEventListener('touchend', () => {
+      isTouching = false;
+      
+      // 计算滑动距离
+      const diff = currentTranslate - prevTranslate;
+      
+      // 如果滑动距离大于卡片宽度的30%，则切换到下一张/上一张
+      if (Math.abs(diff) > cardWidth * 0.3) {
+        if (diff > 0) {
+          // 向右滑动，上一张
+          prevSlide();
+        } else {
+          // 向左滑动，下一张
+          nextSlide();
+        }
+      } else {
+        // 滑动距离不够，回到原位置
+        updateSlider();
+      }
+      
+      prevTranslate = -currentSlide * cardWidth;
+      startAutoPlay(); // 触摸结束后重新开始自动播放
+    });
+    
+    // 防止在触摸时选择文本
+    honorSlider.addEventListener('touchstart', () => {
+      honorSlider.style.userSelect = 'none';
+    });
+    
+    honorSlider.addEventListener('touchend', () => {
+      honorSlider.style.userSelect = '';
     });
     
     // 初始化自动播放和指示器
